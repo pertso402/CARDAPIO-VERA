@@ -1055,8 +1055,7 @@ async function enviarMensagem() {
   await chamarAgente();
 }
 
-// ⚠️ Substitua pela sua chave OpenAI (nunca versionar a chave real)
-const OPENAI_KEY = 'SUA_CHAVE_OPENAI_AQUI';
+const OPENAI_KEY = 'SUA_CHAVE_OPENAI_AQUI'; // chave real está no Vercel, não commitar
 
 const AGENT_TOOLS = [
   {
@@ -1067,9 +1066,10 @@ const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          produto_id:  { type: 'string', description: 'UUID do produto' },
-          quantidade:  { type: 'integer', description: 'Quantidade a adicionar', default: 1 },
-          observacao:  { type: 'string', description: 'Observação opcional sobre o item' },
+          produto_id:   { type: 'string', description: 'UUID do produto (preferencial)' },
+          produto_nome: { type: 'string', description: 'Nome do produto (usado se o UUID não funcionar)' },
+          quantidade:   { type: 'integer', description: 'Quantidade a adicionar', default: 1 },
+          observacao:   { type: 'string', description: 'Observação opcional sobre o item' },
         },
         required: ['produto_id'],
       },
@@ -1203,13 +1203,18 @@ async function executarTool(toolCall) {
   let result = '';
 
   if (name === 'add_to_cart') {
-    const p = state.produtos.find(x => x.id === args.produto_id);
+    let p = state.produtos.find(x => x.id === args.produto_id);
+    // fallback: busca por nome caso o UUID não bata
+    if (!p && args.produto_nome) {
+      const nomeBusca = args.produto_nome.toLowerCase();
+      p = state.produtos.find(x => x.nome.toLowerCase().includes(nomeBusca) || nomeBusca.includes(x.nome.toLowerCase()));
+    }
     if (p) {
       const qty = args.quantidade || 1;
-      for (let i = 0; i < qty; i++) adicionarAoCarrinhoInterno(args.produto_id, args.observacao || '');
+      for (let i = 0; i < qty; i++) adicionarAoCarrinhoInterno(p.id, args.observacao || '');
       result = `${qty}x ${p.nome} adicionado ao carrinho. Preço: R$${(p.preco * qty).toFixed(2).replace('.',',')}`;
     } else {
-      result = 'Produto não encontrado no cardápio.';
+      result = `Produto não encontrado. IDs disponíveis: ${state.produtos.slice(0,5).map(x=>x.id+' ('+x.nome+')').join(', ')}`;
     }
   } else if (name === 'remove_from_cart') {
     removerDoCarrinho(args.produto_id);
