@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Vero Pizzaria Artigianale — Autêntica Como Deve Ser">
+  <meta name="theme-color" content="#0D1510">
+  <title>Vero Pizzaria — Cardápio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="logo-wrap">
+          <img src="../LOGO PIZZARIA VERO.jpeg" alt="Vero Pizzaria" class="logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='flex'">
+          <div class="logo-fallback" style="display:none">
+            <span class="logo-fallback-text">V</span>
+          </div>
+        </div>
+        <div class="brand-info">
+          <h1 class="brand-name">Vero <span>Pizzaria</span></h1>
+          <div class="store-status" id="storeStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Verificando...</span>
+          </div>
+        </div>
+      </div>
+      <button class="cart-btn" id="cartBtn" aria-label="Abrir carrinho" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        <span class="cart-badge" id="cartBadge">0</span>
+        <span class="cart-total-header" id="cartTotalHeader">R$0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero-section" id="heroSection">
+    <div class="hero-glow hero-glow--gold"></div>
+    <div class="hero-glow hero-glow--wine"></div>
+    <div class="hero-particles" id="heroParticles"></div>
+
+    <div class="hero-content" id="heroContent">
+      <div class="hero-eyebrow">
+        <span class="hero-dot"></span>
+        Autêntica Como Deve Ser
+      </div>
+      <h2 class="hero-title">
+        <span class="hero-title-line1">A Pizza</span>
+        <span class="hero-title-line2">Italiana Perfeita</span>
+      </h2>
+      <p class="hero-sub">Massa artesanal, ingredientes selecionados e o sabor que só a Vero entrega.</p>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-icon">⭐</span>
+          <div>
+            <div class="hero-stat-value" data-target="4.9" data-decimal="1">4.9</div>
+            <div class="hero-stat-label">Avaliação</div>
+          </div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-icon">🍕</span>
+          <div>
+            <div class="hero-stat-value" data-target="1200" data-suffix="k+">1k+</div>
+            <div class="hero-stat-label">Pedidos</div>
+          </div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-icon">🛵</span>
+          <div>
+            <div class="hero-stat-value" data-target="45" data-suffix="min">45min</div>
+            <div class="hero-stat-label">Entrega</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="hero-cta" onclick="document.getElementById('catNav').scrollIntoView({behavior:'smooth'})">
+        Ver Cardápio
+        <span class="hero-cta-arrow">↓</span>
+      </button>
+    </div>
+
+    <!-- Carrossel deslizante -->
+    <div class="hero-strip-wrap">
+      <div class="hero-strip" id="heroStrip"></div>
+    </div>
+  </section>
+
+  <!-- NAV CATEGORIAS -->
+  <nav class="cat-nav" id="catNav" hidden>
+    <div class="cat-list" id="catList"></div>
+  </nav>
+
+  <!-- PRODUTOS -->
+  <main class="produtos-main" id="produtosMain">
+    <div class="loading-state" id="loadingState">
+      <div class="loading-spinner"></div>
+      <p>Carregando cardápio...</p>
+    </div>
+  </main>
+
+  <!-- FLOATING CART BAR -->
+  <div class="floating-bar" id="floatingBar">
+    <button class="floating-bar-btn" onclick="abrirCarrinho()">
+      <div class="floating-bar-left">
+        <span class="floating-bar-count" id="floatingBarCount">0</span>
+        <span>Ver carrinho</span>
+      </div>
+      <span class="floating-bar-total" id="floatingBarTotal">R$0,00</span>
+    </button>
+  </div>
+
+  <!-- OVERLAY CARRINHO -->
+  <div class="overlay" id="cartOverlay"></div>
+
+  <!-- DRAWER CARRINHO -->
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+      <button class="btn-back" id="cartClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Seu Pedido</h2>
+      <span id="cartItemsCount" class="cart-count-label"></span>
+    </div>
+
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty" id="cartEmpty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <p>Seu carrinho está vazio</p>
+      </div>
+    </div>
+
+    <div class="cart-footer" id="cartFooter" hidden>
+      <div class="cart-totals">
+        <div class="total-row"><span>Subtotal</span><span id="cartSubtotal">R$0,00</span></div>
+        <div class="total-row delivery-row" id="deliveryRow" hidden>
+          <span>Taxa de entrega</span><span id="deliveryFee">R$7,00</span>
+        </div>
+        <div class="total-row total-final">
+          <span>Total</span><strong id="cartTotal">R$0,00</strong>
+        </div>
+      </div>
+      <button class="btn-checkout" id="btnCheckout">Finalizar Pedido →</button>
+    </div>
+  </aside>
+
+  <!-- MODAL CHECKOUT -->
+  <div class="modal-overlay" id="checkoutOverlay">
+    <div class="modal checkout-modal" id="checkoutModal"></div>
+  </div>
+
+  <!-- MODAL PRODUTO -->
+  <div class="modal-overlay" id="productOverlay">
+    <div class="modal product-modal" id="productModal"></div>
+  </div>
+
+  <!-- MODAL COMPLEMENTO (bottom sheet) -->
+  <div class="complemento-overlay" id="complementoOverlay" onclick="fecharComplemento(event)">
+    <div class="complemento-sheet" id="complementoSheet">
+      <div class="complemento-handle"></div>
+      <h3 class="complemento-title" id="complementoTitle">Escolha sua borda</h3>
+      <p class="complemento-sub">Personalize sua pizza</p>
+      <div class="complemento-options" id="complementoOptions"></div>
+      <button class="complemento-confirm" id="complementoConfirm">Adicionar ao carrinho</button>
+      <button class="complemento-skip" onclick="confirmarSemComplemento()">Sem borda, obrigado</button>
+    </div>
+  </div>
+
+  <!-- CHAT IA (SOFIA) -->
+  <div class="chat-widget" id="chatWidget">
+    <button class="chat-toggle" id="chatToggle" aria-label="Falar com Sofia">
+      <!-- Ícone aberto: X -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="icon-close" style="display:none"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <!-- Ícone fechado: chama de pizza + "Sofia" -->
+      <span class="icon-chat sofia-icon">
+        <svg class="sofia-flame" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2C14 2 20 8 20 15C20 19.4 17.2 22 14 22C10.8 22 8 19.4 8 15C8 11 10 8 10 8C10 8 10 12 13 13C13 13 11 10 14 2Z" fill="#D4AF50"/>
+          <path d="M14 14C14 14 17 16 17 19.5C17 21.4 15.7 23 14 23C12.3 23 11 21.4 11 19.5C11 17.5 12 16 12 16C12 16 12 17.5 13.5 18C13.5 18 12.5 16.5 14 14Z" fill="#fff" opacity="0.7"/>
+          <ellipse cx="14" cy="30" rx="6" ry="2.5" fill="#B8962E" opacity="0.5"/>
+        </svg>
+        <span class="sofia-label">Sofia</span>
+      </span>
+      <span class="chat-ping"></span>
+    </button>
+    <div class="chat-panel" id="chatPanel">
+      <div class="chat-header">
+        <div class="sofia-avatar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div>
+          <strong>Sofia</strong>
+          <span class="sofia-status">Assistente da Vero · Online</span>
+        </div>
+        <button class="chat-minimize" id="chatMinimize">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-wrap">
+        <input type="text" id="chatInput" placeholder="Escreva sua mensagem..." autocomplete="off" maxlength="400">
+        <button class="chat-send" id="chatSend" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÃO ADMIN -->
+  <button class="btn-admin" id="btnAdmin" title="Administração" aria-label="Acesso admin">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+  </button>
+
+  <!-- MODAL ADMIN -->
+  <div class="modal-overlay" id="adminOverlay">
+    <div class="modal admin-modal">
+      <button class="modal-close" id="adminClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="admin-lock-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>Acesso Administrativo</h3>
+      <p>Digite a senha do painel</p>
+      <input type="password" id="adminPwd" placeholder="••••••" maxlength="8" autocomplete="current-password">
+      <p class="admin-error" id="adminError" hidden>Senha incorreta. Tente novamente.</p>
+      <button class="btn-primary full-width" id="btnAdminEnter">Entrar</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
+
+</body>
+</html>

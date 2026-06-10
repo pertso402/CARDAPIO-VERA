@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vero — Painel de Pedidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="painel.js" defer></script>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">🍕</div>
+        <h1>Vero Pizzaria</h1>
+        <p>Painel de Pedidos</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" id="loginPwd" class="form-input" placeholder="••••••" maxlength="8" autocomplete="current-password">
+      </div>
+      <p class="login-error" id="loginError" hidden>Senha incorreta.</p>
+      <button class="btn-primary" id="btnLogin">Entrar</button>
+    </div>
+  </div>
+
+  <!-- PAINEL -->
+  <div class="painel-screen" id="painelScreen" hidden>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="topbar-logo">🍕</span>
+        <span class="topbar-nome">Vero Pizzaria</span>
+      </div>
+      <div class="topbar-stats" id="topbarStats">
+        <span id="statTotal">R$0,00</span>
+        <span class="stat-sep">·</span>
+        <span id="statQtd">0 pedidos</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="loja-toggle" id="lojaToggle" title="Abrir/Fechar loja">
+          <span id="lojaStatus">🟢 Aberta</span>
+        </button>
+        <a href="admin.html" class="btn-admin-link" title="Administração">⚙️</a>
+        <button class="btn-logout" id="btnLogout" title="Sair">Sair</button>
+      </div>
+    </header>
+
+    <!-- FILTRO PERÍODO -->
+    <div class="periodo-bar">
+      <button class="periodo-btn active" data-periodo="hoje" onclick="setPeriodo('hoje', this)">Hoje</button>
+      <button class="periodo-btn" data-periodo="ontem" onclick="setPeriodo('ontem', this)">Ontem</button>
+      <button class="periodo-btn" data-periodo="semana" onclick="setPeriodo('semana', this)">7 dias</button>
+    </div>
+
+    <!-- ABAS -->
+    <nav class="abas-nav" id="abasNav">
+      <button class="aba-btn active" data-status="aguardando_comprovante" onclick="setAba('aguardando_comprovante', this)">
+        Aguardando PIX <span class="aba-count" id="count-aguardando_comprovante">0</span>
+      </button>
+      <button class="aba-btn" data-status="novo" onclick="setAba('novo', this)">
+        Novos <span class="aba-count novo" id="count-novo">0</span>
+      </button>
+      <button class="aba-btn" data-status="em_preparo" onclick="setAba('em_preparo', this)">
+        Em Preparo <span class="aba-count" id="count-em_preparo">0</span>
+      </button>
+      <button class="aba-btn" data-status="pronto" onclick="setAba('pronto', this)">
+        Prontos <span class="aba-count" id="count-pronto">0</span>
+      </button>
+      <button class="aba-btn" data-status="finalizado" onclick="setAba('finalizado', this)">
+        Finalizados <span class="aba-count" id="count-finalizado">0</span>
+      </button>
+    </nav>
+
+    <!-- LISTA DE PEDIDOS -->
+    <main class="pedidos-main" id="pedidosMain">
+      <div class="loading-state" id="loadingPedidos">
+        <div class="loading-spinner"></div>
+        <p>Carregando pedidos...</p>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- NOTIFICAÇÃO SONORA -->
+  <audio id="notifSound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBxYGBqkbSujHFeZHCUtbKPd2VqdJe2tJF5aHV8mbe2k3tqeH+bt7iWfm17g5+6u5mBcH6Go7y8moNzgYmnv7ybhXaDiq3Bv52IeYWNscPBn4t8iJOzxcKijH2KmbfHxaWPf42fuc3HqJKCj6O8zcyrkIKSp77P0K6Uh5WqwNLRr5eJmK3C1NOwm42crMXX1bOejaCwx9nXtp+RorHL3Ni4op" type="audio/wav">
+  </audio>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
+
+</body>
+</html>
