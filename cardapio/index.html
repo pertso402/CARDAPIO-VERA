@@ -21,7 +21,7 @@
     <div class="header-inner">
       <div class="header-brand">
         <div class="logo-wrap">
-          <img src="../LOGO PIZZARIA VERO.jpeg" alt="Vero Pizzaria" class="logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='flex'">
+          <img src="logo.jpeg" alt="Vero Pizzaria" class="logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='flex'">
           <div class="logo-fallback" style="display:none">
             <span class="logo-fallback-text">V</span>
           </div>
@@ -243,6 +243,70 @@
 
   <!-- TOAST -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- INLINE ADMIN PANEL -->
+  <div class="ia-overlay" id="iaOverlay">
+    <div class="ia-panel">
+      <div class="ia-header">
+        <div class="ia-header-brand">⚙️ <strong>Admin — Vero Pizzaria</strong></div>
+        <button class="ia-close" onclick="fecharInlineAdmin()">✕</button>
+      </div>
+      <nav class="ia-tabs">
+        <button class="ia-tab active" onclick="setAdminTab('produtos',this)">🍕 Produtos</button>
+        <button class="ia-tab" onclick="setAdminTab('categorias',this)">📂 Categorias</button>
+        <button class="ia-tab" onclick="setAdminTab('configs',this)">⚙️ Configurações</button>
+      </nav>
+      <div class="ia-body" id="iaBody">
+        <div class="ia-loading"><div class="loading-spinner" style="border-color:#ddd;border-top-color:#1B3D2F"></div></div>
+      </div>
+    </div>
+
+    <!-- Modal Produto -->
+    <div class="ia-modal-wrap" id="iaProdWrap" style="display:none" onclick="if(event.target===this)fecharIAProdModal()">
+      <div class="ia-modal">
+        <button class="ia-modal-close" onclick="fecharIAProdModal()">✕</button>
+        <h3 class="ia-modal-title" id="iaProdTitle">Novo Produto</h3>
+        <div class="ia-form">
+          <label class="ia-label">Nome *</label>
+          <input class="ia-input" id="iaFNome" type="text" placeholder="Ex: Margherita">
+          <label class="ia-label">Descrição</label>
+          <textarea class="ia-input" id="iaFDesc" rows="2" placeholder="Ingredientes..."></textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="ia-label">Preço (R$) *</label>
+              <input class="ia-input" id="iaFPreco" type="number" step="0.01" placeholder="0.00">
+            </div>
+            <div>
+              <label class="ia-label">Categoria</label>
+              <select class="ia-input" id="iaFCategoria"></select>
+            </div>
+          </div>
+          <label class="ia-label">URL da foto</label>
+          <input class="ia-input" id="iaFFoto" type="text" placeholder="https://images.unsplash.com/...">
+          <div class="ia-checks">
+            <label class="ia-check"><input type="checkbox" id="iaFDisponivel" checked> Disponível</label>
+            <label class="ia-check"><input type="checkbox" id="iaFHero"> Destaque hero</label>
+          </div>
+        </div>
+        <button class="ia-btn-save" id="iaBtnSalvarProd" onclick="salvarIAProduto()">Salvar Produto</button>
+      </div>
+    </div>
+
+    <!-- Modal Categoria -->
+    <div class="ia-modal-wrap" id="iaCatWrap" style="display:none" onclick="if(event.target===this)fecharIACatModal()">
+      <div class="ia-modal">
+        <button class="ia-modal-close" onclick="fecharIACatModal()">✕</button>
+        <h3 class="ia-modal-title" id="iaCatTitle">Nova Categoria</h3>
+        <div class="ia-form">
+          <label class="ia-label">Nome *</label>
+          <input class="ia-input" id="iaFCatNome" type="text" placeholder="Ex: Pizzas Especiais">
+          <label class="ia-label">Ícone (emoji)</label>
+          <input class="ia-input" id="iaFCatIcone" type="text" placeholder="🍕" style="max-width:80px">
+        </div>
+        <button class="ia-btn-save" onclick="salvarIACategoria()">Salvar Categoria</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>

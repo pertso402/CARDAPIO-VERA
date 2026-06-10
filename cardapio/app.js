@@ -4,8 +4,9 @@
 // ============================================================
 
 // ▶ SUBSTITUA AQUI APÓS CRIAR O PROJETO SUPABASE
-const SUPABASE_URL     = 'https://somgwwrolrsvscukegfm.supabase.co';
+const SUPABASE_URL      = 'https://somgwwrolrsvscukegfm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvbWd3d3JvbHJzdnNjdWtlZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4OTkyMDcsImV4cCI6MjA5MzQ3NTIwN30._5UTaRMemVmYMQXGWTM2szP4PQMx_AQ9FTpuQc0_fok';
+const SUPABASE_SVC_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNvbWd3d3JvbHJzdnNjdWtlZ2ZtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzg5OTIwNywiZXhwIjoyMDkzNDc1MjA3fQ.4Cb_ofoHVRldhWh0YnD27150v1_GXmuvGY4Dt3GN6V4';
 
 // ============================================================
 // ESTADO GLOBAL
@@ -950,23 +951,341 @@ function setupAdmin() {
     over.classList.add('active', 'center');
     setTimeout(() => pwd?.focus(), 200);
   });
-  close?.addEventListener('click', () => { over.classList.remove('active', 'center'); if(err) err.hidden=true; });
-  over?.addEventListener('click', e => { if(e.target === over) { over.classList.remove('active','center'); if(err) err.hidden=true; } });
+  close?.addEventListener('click', () => { over.classList.remove('active','center'); if(err) err.hidden=true; });
+  over?.addEventListener('click', e => { if(e.target===over) { over.classList.remove('active','center'); if(err) err.hidden=true; } });
   const checkPwd = async () => {
-    const input = pwd.value;
+    const input = pwd.value.trim();
     const senhaCorreta = state.config.senha_admin || '0402';
     if (input === senhaCorreta) {
-      window.open('../painel/admin.html', '_blank');
       over.classList.remove('active','center');
       pwd.value = '';
+      if(err) err.hidden = true;
+      abrirInlineAdmin();
     } else {
-      if(err) { err.hidden = false; }
+      if(err) err.hidden = false;
       pwd.value = '';
       setTimeout(() => { if(err) err.hidden=true; }, 3000);
     }
   };
   enter?.addEventListener('click', checkPwd);
-  pwd?.addEventListener('keydown', e => { if(e.key === 'Enter') checkPwd(); });
+  pwd?.addEventListener('keydown', e => { if(e.key==='Enter') checkPwd(); });
+}
+
+// ============================================================
+// INLINE ADMIN PANEL
+// ============================================================
+const adm = {
+  sb: null,
+  produtos: [],
+  categorias: [],
+  config: {},
+  tab: 'produtos',
+  editId: null,
+};
+
+async function abrirInlineAdmin() {
+  const overlay = document.getElementById('iaOverlay');
+  if (!overlay) return;
+  if (!adm.sb) adm.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SVC_KEY);
+  overlay.classList.add('open');
+  document.getElementById('iaBody').innerHTML = '<div class="ia-loading"><div class="loading-spinner" style="border-color:#ddd;border-top-color:#1B3D2F"></div></div>';
+  await Promise.all([_admCarregarProdutos(), _admCarregarCategorias(), _admCarregarConfig()]);
+  _admRenderTab();
+}
+
+function fecharInlineAdmin() {
+  document.getElementById('iaOverlay')?.classList.remove('open');
+}
+
+async function _admCarregarProdutos() {
+  const { data } = await adm.sb.from('produtos').select('*').order('ordem');
+  adm.produtos = data || [];
+}
+async function _admCarregarCategorias() {
+  const { data } = await adm.sb.from('categorias').select('*').order('ordem');
+  adm.categorias = data || [];
+}
+async function _admCarregarConfig() {
+  const { data } = await adm.sb.from('configuracoes').select('*');
+  adm.config = {};
+  (data||[]).forEach(c => adm.config[c.chave] = c.valor);
+}
+
+function setAdminTab(tab, btn) {
+  adm.tab = tab;
+  document.querySelectorAll('.ia-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _admRenderTab();
+}
+
+function _admRenderTab() {
+  if (adm.tab === 'produtos')    _admRenderProdutos();
+  else if (adm.tab === 'categorias') _admRenderCategorias();
+  else _admRenderConfigs();
+}
+
+function _admRenderProdutos() {
+  const body = document.getElementById('iaBody');
+  const porCat = adm.categorias.map(c => ({
+    c, prods: adm.produtos.filter(p => p.categoria_id === c.id)
+  })).filter(g => g.prods.length);
+  const semCat = adm.produtos.filter(p => !p.categoria_id);
+
+  const itemHTML = p => {
+    const fotoEl = p.foto_url
+      ? `<div class="ia-prod-thumb"><img src="${p.foto_url}" alt="${p.nome}" onerror="this.parentElement.textContent='🍕'"></div>`
+      : `<div class="ia-prod-thumb">🍕</div>`;
+    return `<div class="ia-prod-item">
+      ${fotoEl}
+      <div class="ia-prod-info">
+        <div class="ia-prod-nome">${p.nome}</div>
+        <div class="ia-prod-cat">${adm.categorias.find(c=>c.id===p.categoria_id)?.nome||'—'}</div>
+      </div>
+      ${!p.disponivel ? '<span class="ia-badge-off">Inativo</span>':''}
+      <span class="ia-prod-preco">R$${Number(p.preco).toFixed(2).replace('.',',')}</span>
+      <div class="ia-prod-actions">
+        <button class="ia-btn-edit" onclick="editarIAProduto('${p.id}')">✏️</button>
+        <button class="ia-btn-del" onclick="excluirIAProduto('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
+  };
+
+  body.innerHTML = `
+    <div class="ia-section-header">
+      <span class="ia-section-title">Produtos (${adm.produtos.length})</span>
+      <button class="ia-btn-new" onclick="novoIAProduto()">+ Novo Produto</button>
+    </div>
+    ${porCat.map(g => `
+      <div class="ia-cat-label">${g.c.icone||''} ${g.c.nome}</div>
+      ${g.prods.map(itemHTML).join('')}
+    `).join('')}
+    ${semCat.map(itemHTML).join('')}
+    ${!adm.produtos.length ? '<p style="color:#999;text-align:center;padding:40px 0">Nenhum produto. Clique em "+ Novo Produto".</p>' : ''}
+  `;
+}
+
+function novoIAProduto() {
+  adm.editId = null;
+  document.getElementById('iaProdTitle').textContent = 'Novo Produto';
+  document.getElementById('iaFNome').value = '';
+  document.getElementById('iaFDesc').value = '';
+  document.getElementById('iaFPreco').value = '';
+  document.getElementById('iaFFoto').value = '';
+  document.getElementById('iaFDisponivel').checked = true;
+  document.getElementById('iaFHero').checked = false;
+  _admPreencherSelectCats();
+  document.getElementById('iaProdWrap').style.display = 'flex';
+  setTimeout(() => document.getElementById('iaFNome').focus(), 100);
+}
+
+function editarIAProduto(id) {
+  const p = adm.produtos.find(x => x.id === id);
+  if (!p) return;
+  adm.editId = id;
+  document.getElementById('iaProdTitle').textContent = 'Editar Produto';
+  document.getElementById('iaFNome').value = p.nome || '';
+  document.getElementById('iaFDesc').value = p.descricao || '';
+  document.getElementById('iaFPreco').value = p.preco || '';
+  document.getElementById('iaFFoto').value = p.foto_url || '';
+  document.getElementById('iaFDisponivel').checked = p.disponivel;
+  document.getElementById('iaFHero').checked = p.destaque_hero;
+  _admPreencherSelectCats(p.categoria_id);
+  document.getElementById('iaProdWrap').style.display = 'flex';
+}
+
+function fecharIAProdModal() {
+  document.getElementById('iaProdWrap').style.display = 'none';
+  adm.editId = null;
+}
+
+function _admPreencherSelectCats(selId = null) {
+  const sel = document.getElementById('iaFCategoria');
+  sel.innerHTML = `<option value="">Sem categoria</option>` +
+    adm.categorias.map(c => `<option value="${c.id}"${c.id===selId?' selected':''}>${c.icone||''} ${c.nome}</option>`).join('');
+}
+
+async function salvarIAProduto() {
+  const nome  = document.getElementById('iaFNome').value.trim();
+  const preco = parseFloat(document.getElementById('iaFPreco').value);
+  if (!nome) { mostrarToast('Informe o nome.','error'); return; }
+  if (!preco || preco <= 0) { mostrarToast('Informe um preço válido.','error'); return; }
+  const btn = document.getElementById('iaBtnSalvarProd');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const dados = {
+    nome,
+    descricao:     document.getElementById('iaFDesc').value.trim() || null,
+    preco,
+    foto_url:      document.getElementById('iaFFoto').value.trim() || null,
+    categoria_id:  document.getElementById('iaFCategoria').value || null,
+    disponivel:    document.getElementById('iaFDisponivel').checked,
+    destaque_hero: document.getElementById('iaFHero').checked,
+  };
+  try {
+    if (adm.editId) {
+      await adm.sb.from('produtos').update(dados).eq('id', adm.editId);
+      mostrarToast('Produto atualizado! ✓','success');
+    } else {
+      await adm.sb.from('produtos').insert(dados);
+      mostrarToast('Produto criado! ✓','success');
+    }
+    fecharIAProdModal();
+    await _admCarregarProdutos();
+    _admRenderProdutos();
+    // recarrega cardápio em tempo real
+    await carregarDados();
+  } catch(e) { mostrarToast('Erro ao salvar.','error'); console.error(e); }
+  btn.disabled = false; btn.textContent = 'Salvar Produto';
+}
+
+async function excluirIAProduto(id) {
+  if (!confirm('Excluir este produto?')) return;
+  await adm.sb.from('produtos').delete().eq('id', id);
+  mostrarToast('Produto excluído.','error');
+  await _admCarregarProdutos();
+  _admRenderProdutos();
+  await carregarDados();
+}
+
+function _admRenderCategorias() {
+  const body = document.getElementById('iaBody');
+  body.innerHTML = `
+    <div class="ia-section-header">
+      <span class="ia-section-title">Categorias (${adm.categorias.length})</span>
+      <button class="ia-btn-new" onclick="novaIACategoria()">+ Nova Categoria</button>
+    </div>
+    ${adm.categorias.map(c => `
+      <div class="ia-prod-item">
+        <div class="ia-prod-thumb" style="font-size:22px">${c.icone||'📂'}</div>
+        <div class="ia-prod-info">
+          <div class="ia-prod-nome">${c.nome}</div>
+          <div class="ia-prod-cat">${adm.produtos.filter(p=>p.categoria_id===c.id).length} produto(s)</div>
+        </div>
+        <label class="ia-toggle" title="Ativo">
+          <input type="checkbox" ${c.ativa!==false?'checked':''} onchange="toggleIACategoria('${c.id}',this.checked)">
+          <span class="ia-toggle-slider"></span>
+        </label>
+        <div class="ia-prod-actions">
+          <button class="ia-btn-edit" onclick="editarIACategoria('${c.id}')">✏️</button>
+          <button class="ia-btn-del" onclick="excluirIACategoria('${c.id}')">🗑️</button>
+        </div>
+      </div>`).join('')}
+  `;
+}
+
+function novaIACategoria() {
+  adm.editId = null;
+  document.getElementById('iaCatTitle').textContent = 'Nova Categoria';
+  document.getElementById('iaFCatNome').value = '';
+  document.getElementById('iaFCatIcone').value = '';
+  document.getElementById('iaCatWrap').style.display = 'flex';
+  setTimeout(() => document.getElementById('iaFCatNome').focus(), 100);
+}
+
+function editarIACategoria(id) {
+  const c = adm.categorias.find(x => x.id === id);
+  if (!c) return;
+  adm.editId = id;
+  document.getElementById('iaCatTitle').textContent = 'Editar Categoria';
+  document.getElementById('iaFCatNome').value = c.nome || '';
+  document.getElementById('iaFCatIcone').value = c.icone || '';
+  document.getElementById('iaCatWrap').style.display = 'flex';
+}
+
+function fecharIACatModal() {
+  document.getElementById('iaCatWrap').style.display = 'none';
+  adm.editId = null;
+}
+
+async function salvarIACategoria() {
+  const nome = document.getElementById('iaFCatNome').value.trim();
+  if (!nome) { mostrarToast('Informe o nome.','error'); return; }
+  const dados = { nome, icone: document.getElementById('iaFCatIcone').value.trim() || null };
+  if (adm.editId) {
+    await adm.sb.from('categorias').update(dados).eq('id', adm.editId);
+  } else {
+    await adm.sb.from('categorias').insert({ ...dados, ordem: adm.categorias.length, ativa: true });
+  }
+  mostrarToast('Categoria salva! ✓','success');
+  fecharIACatModal();
+  await _admCarregarCategorias();
+  _admRenderCategorias();
+}
+
+async function excluirIACategoria(id) {
+  const prods = adm.produtos.filter(p => p.categoria_id === id);
+  if (prods.length) { mostrarToast(`Mova os ${prods.length} produto(s) antes de excluir.`,'error'); return; }
+  if (!confirm('Excluir esta categoria?')) return;
+  await adm.sb.from('categorias').delete().eq('id', id);
+  mostrarToast('Categoria excluída.','error');
+  await _admCarregarCategorias();
+  _admRenderCategorias();
+}
+
+async function toggleIACategoria(id, ativa) {
+  await adm.sb.from('categorias').update({ ativa }).eq('id', id);
+}
+
+function _admRenderConfigs() {
+  const c = adm.config;
+  document.getElementById('iaBody').innerHTML = `
+    <div class="ia-config-section">
+      <div class="ia-config-section-title">Loja</div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">Status da loja</div><div class="ia-config-sub">Abrir ou fechar para novos pedidos</div></div>
+        <label class="ia-toggle"><input type="checkbox" id="cfgLoja" ${c.loja_aberta!=='false'?'checked':''}><span class="ia-toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="ia-config-section">
+      <div class="ia-config-section-title">Delivery</div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">Taxa de entrega (R$)</div><div class="ia-config-sub">Valor fixo cobrado no delivery</div></div>
+        <input class="ia-config-input" id="cfgTaxa" type="number" step="0.5" value="${c.taxa_entrega||'7'}">
+      </div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">Pedido mínimo (R$)</div><div class="ia-config-sub">0 = sem mínimo</div></div>
+        <input class="ia-config-input" id="cfgMinimo" type="number" step="1" value="${c.pedido_minimo||'0'}">
+      </div>
+    </div>
+    <div class="ia-config-section">
+      <div class="ia-config-section-title">Pagamento e Contato</div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">Chave PIX</div></div>
+        <input class="ia-config-input" id="cfgPix" type="text" value="${c.chave_pix||''}" style="text-align:left">
+      </div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">WhatsApp</div><div class="ia-config-sub">DDD + número sem espaços</div></div>
+        <input class="ia-config-input" id="cfgWa" type="text" value="${c.whatsapp||''}" style="text-align:left">
+      </div>
+    </div>
+    <div class="ia-config-section">
+      <div class="ia-config-section-title">Segurança</div>
+      <div class="ia-config-row">
+        <div><div class="ia-config-label">Senha do admin</div><div class="ia-config-sub">Padrão: 0402</div></div>
+        <input class="ia-config-input" id="cfgSenha" type="password" value="${c.senha_admin||'0402'}">
+      </div>
+    </div>
+    <button class="ia-btn-save-cfg" onclick="salvarIAConfigs()">Salvar Configurações ✓</button>
+  `;
+}
+
+async function salvarIAConfigs() {
+  const updates = [
+    ['loja_aberta',   String(document.getElementById('cfgLoja').checked)],
+    ['taxa_entrega',  document.getElementById('cfgTaxa').value],
+    ['pedido_minimo', document.getElementById('cfgMinimo').value],
+    ['chave_pix',     document.getElementById('cfgPix').value.trim()],
+    ['whatsapp',      document.getElementById('cfgWa').value.trim()],
+    ['senha_admin',   document.getElementById('cfgSenha').value.trim() || '0402'],
+  ];
+  try {
+    await Promise.all(updates.map(([chave, valor]) =>
+      adm.sb.from('configuracoes').upsert({ chave, valor }, { onConflict: 'chave' })
+    ));
+    updates.forEach(([k,v]) => adm.config[k] = v);
+    // atualiza config do cardápio também
+    updates.forEach(([k,v]) => state.config[k] = v);
+    mostrarToast('Configurações salvas! ✓','success');
+  } catch(e) { mostrarToast('Erro ao salvar.','error'); console.error(e); }
 }
 
 // ============================================================

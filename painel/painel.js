@@ -25,7 +25,11 @@ const state = {
 // BOOT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  try {
+    state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  } catch(e) {
+    console.warn('Supabase init failed, continuando sem realtime:', e);
+  }
   setupLogin();
 });
 
@@ -45,13 +49,21 @@ function setupLogin() {
   const SENHA_FALLBACK = '0402';
 
   const tryLogin = async () => {
-    const senha = pwd.value;
+    const senha = pwd.value.trim();
     if (!senha) return;
+
+    // Tenta buscar senha do banco, mas nunca trava o login se falhar
     let senhaCorreta = SENHA_FALLBACK;
-    try {
-      const { data } = await state.sb.from('configuracoes').select('valor').eq('chave','senha_admin').single();
-      if (data?.valor) senhaCorreta = data.valor;
-    } catch (_) {}
+    if (state.sb) {
+      try {
+        const res = await Promise.race([
+          state.sb.from('configuracoes').select('valor').eq('chave','senha_admin').single(),
+          new Promise(resolve => setTimeout(() => resolve({ data: null }), 3000))
+        ]);
+        if (res?.data?.valor) senhaCorreta = res.data.valor;
+      } catch (_) {}
+    }
+
     if (senha === senhaCorreta) {
       sessionStorage.setItem('vero_auth', '1');
       loginErr.hidden = true;
@@ -60,7 +72,7 @@ function setupLogin() {
     } else {
       loginErr.hidden = false;
       pwd.value = '';
-      setTimeout(() => loginErr.hidden=true, 3000);
+      setTimeout(() => loginErr.hidden = true, 3000);
     }
   };
 
