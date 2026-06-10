@@ -42,11 +42,17 @@ function setupLogin() {
   const pwd       = document.getElementById('loginPwd');
   const loginErr  = document.getElementById('loginError');
 
+  const SENHA_FALLBACK = '0402';
+
   const tryLogin = async () => {
     const senha = pwd.value;
     if (!senha) return;
-    const { data } = await state.sb.from('configuracoes').select('valor').eq('chave','senha_admin').single();
-    if (data?.valor === senha) {
+    let senhaCorreta = SENHA_FALLBACK;
+    try {
+      const { data } = await state.sb.from('configuracoes').select('valor').eq('chave','senha_admin').single();
+      if (data?.valor) senhaCorreta = data.valor;
+    } catch (_) {}
+    if (senha === senhaCorreta) {
       sessionStorage.setItem('vero_auth', '1');
       loginErr.hidden = true;
       desbloquearAudio();
