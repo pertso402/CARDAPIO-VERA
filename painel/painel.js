@@ -28,71 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   } catch(e) {
-    console.warn('Supabase init failed, continuando sem realtime:', e);
+    console.warn('Supabase init failed:', e);
   }
-  setupLogin();
-});
-
-// ============================================================
-// LOGIN
-// ============================================================
-function setupLogin() {
-  const check = () => sessionStorage.getItem('vero_auth') === '1';
-  if (check()) { mostrarPainel(); return; }
-  document.getElementById('loginScreen').hidden  = false;
-  document.getElementById('painelScreen').hidden = true;
-
-  const btnLogin  = document.getElementById('btnLogin');
-  const pwd       = document.getElementById('loginPwd');
-  const loginErr  = document.getElementById('loginError');
-
-  const SENHA_FALLBACK = '0402';
-
-  const tryLogin = async () => {
-    const senha = pwd.value.trim();
-    if (!senha) return;
-
-    // Tenta buscar senha do banco, mas nunca trava o login se falhar
-    let senhaCorreta = SENHA_FALLBACK;
-    if (state.sb) {
-      try {
-        const res = await Promise.race([
-          state.sb.from('configuracoes').select('valor').eq('chave','senha_admin').single(),
-          new Promise(resolve => setTimeout(() => resolve({ data: null }), 3000))
-        ]);
-        if (res?.data?.valor) senhaCorreta = res.data.valor;
-      } catch (_) {}
-    }
-
-    if (senha === senhaCorreta) {
-      sessionStorage.setItem('vero_auth', '1');
-      loginErr.hidden = true;
-      desbloquearAudio();
-      mostrarPainel();
-    } else {
-      loginErr.hidden = false;
-      pwd.value = '';
-      setTimeout(() => loginErr.hidden = true, 3000);
-    }
-  };
-
-  btnLogin?.addEventListener('click', tryLogin);
-  pwd?.addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
-}
-
-function desbloquearAudio() {
-  const audio = document.getElementById('notifSound');
-  if (audio) {
-    audio.volume = 0;
-    audio.play().then(() => { audio.pause(); audio.volume = 1; state.audioDesbloqueado = true; }).catch(()=>{});
-  }
-}
-
-function mostrarPainel() {
   document.getElementById('loginScreen').hidden  = true;
   document.getElementById('painelScreen').hidden = false;
   inicializarPainel();
-}
+});
 
 // ============================================================
 // INICIALIZAR
